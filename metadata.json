@@ -1,0 +1,6 @@
+{
+  "name": "GharKharch",
+  "description": "An offline-first household expense tracker tailored for Indian homes. Track category budgets, visualize spends, and export reports in INR.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
