@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GharKharch - Indian Household Expense Tracker & Google Sheets Backup Manager</title>
+    
+    <!-- Robust Search Engine Optimization (SEO) Meta Tags -->
+    <meta name="description" content="Manage your household budget with GharKharch. Track category expenses daily, compare month-over-month spends in INR, and sync securely to Google Sheets backups.">
+    <meta name="keywords" content="GharKharch, Expense Tracker, Indian Household Budget, Google Sheets Expense Tracker, Daily Spend Tracker, Home Accounts Manager, INR Budgeting App">
+    <meta name="author" content="GharKharch Team">
+    <link rel="canonical" href="https://zone59501.github.io/gharkharch/">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/emoji/96/home-emoji.png">
+
+    <!-- Open Graph / Meta Protocol for Rich Snippets -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://zone59501.github.io/gharkharch/">
+    <meta property="og:title" content="GharKharch - Household Finance Tracker with Cloud Sheets Integration">
+    <meta property="og:description" content="Elegant and modern offline-first Indian home spend database tracker. Log daily cash, card, and UPI transactions with instant visual analysis grids.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=1200&h=630">
+
+    <!-- Twitter Cards Integration -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="GharKharch - Daily Household budgeting">
+    <meta name="twitter:description" content="Offline-first INR budget with custom responsive Material 3 UI.">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=1200&h=630">
+
+    <!-- Structured JSON-LD Metadata (Schema.org Schema) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GharKharch",
+      "description": "An offline-first household expense tracker tailored for Indian homes with category budgets, analytics, and automated Google Sheets sync.",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0.00",
+        "priceCurrency": "INR"
+      },
+      "featureList": [
+        "Interactive Monthly Spends Dashboard",
+        "Automated Google Sheets Cloud Sync",
+        "Indian Commas Currency System Formatting",
+        "Detailed Categorized Domestic Budgets",
+        "UPI and Cash Payment Method Trackers"
+      ]
+    }
+    </script>
+
+    <!-- UI Materials and System Style Embeds -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- 1. AUTHENTICATION SHELL WRAPPER -->
+    <div id="auth-screen-root" class="auth-container">
+        <main class="auth-card" aria-label="Credential Portal">
+            <div class="auth-logo-badge" aria-hidden="true">🏡</div>
+            <h1 class="auth-title">GharKharch</h1>
+            <p class="auth-subtitle">Ghar ka Kharch, synced safely to Google Sheets</p>
+
+            <div class="auth-tab-switch" role="tablist">
+                <button id="tab-login" class="auth-tab-btn active" role="tab" aria-selected="true">Access Family</button>
+                <button id="tab-signup" class="auth-tab-btn" role="tab" aria-selected="false">Create House</button>
+            </div>
+
+            <form id="auth-form" novalidate>
+                <div class="form-group" id="name-group" style="display: none;">
+                    <label class="form-label" for="auth-name">Family Head/Name</label>
+                    <input type="text" id="auth-name" class="input-field" placeholder="Sharma Household / Rajesh Kumar">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="auth-email">Family Email Address</label>
+                    <input type="email" id="auth-email" class="input-field" placeholder="sharmas@gmail.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="auth-password">Sheets Storage Password</label>
+                    <input type="password" id="auth-password" class="input-field" placeholder="Enter password to encrypt metadata" required>
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="btn-primary" style="margin-top:24px;">
+                    <i class="material-icons" style="font-size:18px;">cloud_sync</i>
+                    <span id="submit-btn-text">Authorize & Sync</span>
+                </button>
+            </form>
+
+            <button id="auth-demo-btn" class="btn-outline">
+                <i class="material-icons" style="font-size:18px;">cloud_queue</i>
+                <span>Simulate Demo Session</span>
+            </button>
+        </main>
+    </div>
+
+    <!-- 2. FULL INTERNAL APP SHELL WRAPPER (HIDDEN UNTIL AUTHENTICATED) -->
+    <div id="app-screen-root" class="app-container" style="display: none;">
+        
+        <!-- Sidebar Navigation (Desktop Device Sizes) -->
+        <nav class="sidebar" aria-label="Primary Navigation">
+            <div>
+                <div class="brand-wrapper">
+                    <span class="brand-logo" aria-hidden="true">🏡</span>
+                    <span class="brand-title">GharKharch</span>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#" class="nav-item active" data-target="dashboard-page"><i class="material-icons">dashboard</i>Dashboard</a></li>
+                    <li><a href="#" class="nav-item" data-target="reports-page"><i class="material-icons">history</i>Family Logs</a></li>
+                    <li><a href="#" class="nav-item" data-target="settings-page"><i class="material-icons">settings</i>Settings</a></li>
+                </ul>
+            </div>
+            
+            <div class="nav-footer">
+                <div class="user-profile-badge">
+                    <div id="user-avatar" class="user-avatar">?</div>
+                    <div class="user-meta-info">
+                        <span id="user-display-name" class="user-meta-name">Loading...</span>
+                        <span id="user-display-email" class="user-meta-email">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Right Side Panel Host -->
+        <div class="main-wrapper">
+            <header class="top-header">
+                <div class="header-meta">
+                    <h2 id="top-title" style="font-size:18px; font-weight:800;">Household Dashboard</h2>
+                </div>
+                <div class="header-action-panel">
+                    <span id="clock-timestamp" style="font-size:12px; font-weight:700; color:var(--on-surface-variant); background:var(--surface-variant); padding:6px 12px; border-radius: var(--radius-sm);">UTC CLOCK</span>
+                    <button id="theme-toggle-btn" class="btn-icon" aria-label="Toggle visual theme">
+                        <i class="material-icons">light_mode</i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- A. DASHBOARD VIEW PAGE -->
+            <main id="dashboard-page" class="page-view active" aria-label="Dashboard Overview">
+                
+                <!-- Quick onboarding banner if expenses lists are empty -->
+                <section id="onboarding-card" class="onboard-dialog" style="display: none;" aria-label="Onboarding Banner">
+                    <h3 class="onboard-title">Namaste! Welcome to GharKharch 🏡</h3>
+                    <p class="onboard-desc">Ready to sync your monthly household budget? Prepopulate realistic domestic spends instantly or log your own expenses manually.</p>
+                    <div class="onboard-actions">
+                        <button id="onboard-demo-btn" class="btn-primary" style="width: auto; padding: 10px 20px;"><i class="material-icons">bolt</i>Load Preset Dataset</button>
+                        <button id="onboard-add-btn" class="btn-outline" style="width: auto; margin-top:0;"><i class="material-icons">add</i>Add First Spend</button>
+                    </div>
+                </section>
+
+                <!-- Metrics Counter Cards -->
+                <section class="dashboard-grid" aria-label="Totals Counters">
+                    <div class="metric-card today">
+                        <div class="metric-header">
+                            <span>TODAY SPENT</span>
+                            <i class="material-icons" style="font-size:16px;">calendar_today</i>
+                        </div>
+                        <div id="metric-today-val" class="metric-value">₹0</div>
+                    </div>
+                    <div class="metric-card week">
+                        <div class="metric-header">
+                            <span>WEEKLY TOTAL</span>
+                            <i class="material-icons" style="font-size:16px;">date_range</i>
+                        </div>
+                        <div id="metric-week-val" class="metric-value">₹0</div>
+                    </div>
+                    <div class="metric-card month">
+                        <div class="metric-header" style="justify-content: space-between;">
+                            <span>MONTH TOTAL</span>
+                            <i class="material-icons" style="font-size:16px; color:var(--primary);">trending_up</i>
+                        </div>
+                        <div id="metric-month-val" class="metric-value">₹0</div>
+                        <div id="metric-mom-indicator" class="indicator-row">
+                            <!-- Populated Dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Analytics Graphs Grid layout -->
+                <section class="chart-container-row" aria-label="Spend Analytics Charts">
+                    <div class="graph-card">
+                        <h3 class="graph-title">Category Spends (This Month)</h3>
+                        <div class="chart-donut-box">
+                            <div class="donut-svg-col">
+                                <svg width="150" height="150" viewBox="0 0 42 42" id="donut-chart-svg">
+                                    <circle class="donut-hole" cx="21" cy="21" r="15.915" fill="transparent"></circle>
+                                    <circle class="donut-ring" cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--outline)" stroke-width="3"></circle>
+                                    <!-- Dynamic segments appended in code -->
+                                </svg>
+                                <div class="donut-center-text">
+                                    <span id="chart-total-outlay" class="donut-center-val">₹0</span>
+                                    <span class="donut-center-lbl">Spent</span>
+                                </div>
+                            </div>
+                            <div id="donut-legend" class="donut-legend-col">
+                                <!-- Appended Dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="graph-card">
+                        <h3 class="graph-title">Daily Trend (Last 7 Days)</h3>
+                        <div id="bar-chart-bars" class="bar-chart-box">
+                            <!-- Row of columns generated in JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <section class="graph-card" aria-label="Spending Analysis">
+                    <h3 class="graph-title">🔥 Major Expense Areas This Month</h3>
+                    <div id="top-ranks-root" class="top-spending-ranks">
+                        <!-- Dynamic ranks generated in JS -->
+                    </div>
+                </section>
+            </main>
+
+            <!-- B. REPORTS AND TRANSACTION LOGS -->
+            <main id="reports-page" class="page-view" aria-label="Transaction Audit Records">
+                <header style="margin-bottom:20px;">
+                    <h2 style="font-size:22px; font-weight:800;">Household Ledger</h2>
+                    <p style="font-size:13px; color:var(--on-surface-variant);">Filter, search, or review your transactions stored in safe sandboxed Room buffers.</p>
+                </header>
+
+                <section class="list-filters-toolbar" aria-label="Filters Panel">
+                    <div class="search-icon-box">
+                        <i class="material-icons">search</i>
+                        <input type="text" id="filter-search" class="input-field" placeholder="Search notes or items...">
+                    </div>
+                    <select id="filter-category" class="input-field" aria-label="Filter expenses by Category">
+                        <option value="">All Categories</option>
+                        <!-- Filled in JS -->
+                    </select>
+                    <select id="filter-payment" class="input-field" aria-label="Filter expenses by Payment Method">
+                        <option value="">All Payments</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="NetBanking">NetBanking</option>
+                    </select>
+                </section>
+
+                <!-- Transactions table container -->
+                <section class="table-scroller" aria-label="Expense Entries list">
+                    <div id="expenses-scroller-root" class="expense-rows-container">
+                        <!-- Populated inside app.js -->
+                    </div>
+                </section>
+            </main>
+
+            <!-- C. CONFIGURATION SETTINGS & LIVE CONSOLE TERMINAL -->
+            <main id="settings-page" class="page-view" aria-label="Configuration System Settings">
+                <div class="settings-grid">
+                    
+                    <div>
+                        <!-- Google Sheets Core Module Setup -->
+                        <section class="settings-group-card" aria-labelledby="sheets-config-title">
+                            <h3 id="sheets-config-title" class="settings-title" style="margin-bottom:16px;">
+                                <i class="material-icons" style="font-size:16px; vertical-align:middle; margin-right:4px;">cloud</i>Google Sheets Vault Backup
+                            </h3>
+                            
+                            <div class="settings-meta-row">
+                                <div class="settings-meta-label">Connected Family Member:</div>
+                                <div id="settings-user-name" class="settings-meta-val">-</div>
+                            </div>
+                            <div class="settings-meta-row">
+                                <div class="settings-meta-label">Family Registered Email:</div>
+                                <div id="settings-user-email" class="settings-meta-val">-</div>
+                            </div>
+                            <div class="settings-meta-row" style="margin-bottom:24px;">
+                                <div class="settings-meta-label">Active Backup Spreadsheet Registry ID:</div>
+                                <div id="settings-spreadsheet-id" class="settings-meta-val" style="color:var(--primary); font-weight:700;">-</div>
+                            </div>
+
+                            <div class="settings-actions-panel">
+                                <button id="sync-now-btn" class="btn-primary" style="flex:1;">
+                                    <i class="material-icons">cloud_sync</i>Sync Now
+                                </button>
+                                <button id="logout-btn" class="btn-outline" style="flex:1; border-color:var(--tertiary); color:var(--tertiary); margin-top:0;">
+                                    <i class="material-icons" style="color:var(--tertiary);">logout</i>Sign Out Profile
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Custom OAuth configuration and database helper presets -->
+                        <section class="settings-group-card" aria-label="Advanced settings">
+                            <h3 class="settings-title" style="margin-bottom:16px;"><i class="material-icons" style="font-size:16px; vertical-align:middle; margin-right:4px;">vpn_key</i>Developers Token Options</h3>
+                            <div class="form-group">
+                                <label class="form-label" for="custom-oauth-token">Google Cloud Access Token</label>
+                                <input type="password" id="custom-oauth-token" class="input-field" placeholder="Paste actual Google Bearer OAuth Access token">
+                                <p style="font-size:11px; color:var(--on-surface-variant); margin-top:4px;">Leave empty to preserve our safe sandbox cloud emulator simulation sync which requires no Google APIs setup.</p>
+                            </div>
+
+                            <hr style="border:none; border-top:1px solid var(--outline); margin: 20px 0;">
+
+                            <h4 style="font-size:14px; font-weight:700; margin-bottom:10px;">Preserve / Seed Backup Controls:</h4>
+                            <div class="settings-actions-panel" style="margin-top:0;">
+                                <button id="seed-data-btn" class="btn-outline" style="margin-top:0; border-color: var(--primary); color:var(--primary); flex:1;"><i class="material-icons" style="color:var(--primary);">library_add</i>Seed Preset Data</button>
+                                <button id="wipe-data-btn" class="btn-outline" style="margin-top:0; border-color:var(--tertiary); color:var(--tertiary); flex:1;"><i class="material-icons" style="color:var(--tertiary);">delete_sweep</i>Wipe SQLite Memory</button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Monospace live sheets log terminal console -->
+                    <section class="terminal-block" aria-labelledby="terminal-head">
+                        <div class="terminal-header">
+                            <h3 id="terminal-head" class="terminal-title">Google Sheets Live Terminal</h3>
+                            <div id="terminal-beacon" class="terminal-node-beac"></div>
+                        </div>
+                        <div id="terminal-scroller" class="terminal-scroller-box">
+                            <!-- Appended dynamically in real time -->
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <!-- Float FAB quick add button -->
+        <button id="global-fab-btn" class="fab-quick-add" aria-label="Aesthetic Quick Add Transaction" title="Log Spending">
+            <i class="material-icons">add</i>
+        </button>
+
+        <!-- Dynamic Mobile bottom navigation bar -->
+        <nav class="navigator-mobile-bar" aria-label="Mobile Navigator Grid">
+            <div class="navigator-mobile-row">
+                <button class="navigator-mobile-btn active" data-target="dashboard-page" aria-label="Dashboard Layout"><i class="material-icons">dashboard</i>Dashboard</button>
+                <button class="navigator-mobile-btn" data-target="reports-page" aria-label="Ledger list"><i class="material-icons">history</i>Logs</button>
+                <button class="navigator-mobile-btn" data-target="settings-page" aria-label="System config settings"><i class="material-icons">settings</i>Settings</button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- 3. DIALOG MODALS -->
+    <!-- Log Spend modal dialog form -->
+    <div id="spend-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="spend-modal-title">
+        <div class="modal-card">
+            <header class="modal-header">
+                <h3 id="spend-modal-title" class="modal-title">Log New Spending Transaction</h3>
+                <button class="modal-close-btn" id="close-spend-modal" aria-label="Close dialog"><i class="material-icons">close</i></button>
+            </header>
+            <form id="spend-form">
+                <input type="hidden" id="edit-id-field">
+                
+                <div class="form-group">
+                    <label class="form-label" for="spend-amount">Amount (Indian Rupees ₹)</label>
+                    <input type="number" id="spend-amount" class="input-field" placeholder="e.g. 1500" min="1" step="any" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="spend-category">Household Category</label>
+                    <select id="spend-category" class="input-field" required>
+                        <!-- Category Options filled in JS -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="spend-date">Transaction Date</label>
+                    <input type="date" id="spend-date" class="input-field" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="spend-payment">Payment Mode</label>
+                    <select id="spend-payment" class="input-field">
+                        <option value="UPI">UPI Payment</option>
+                        <option value="Cash">Cash Handover</option>
+                        <option value="Card">Credit/Debit Card</option>
+                        <option value="NetBanking">NetBanking / IME</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="spend-note">Description Notes</label>
+                    <input type="text" id="spend-note" class="input-field" placeholder="e.g. Reliance Smart weekly vegetables and dry pulses">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-outline" id="cancel-spend-modal" style="width:auto; margin-top:0;">Cancel</button>
+                    <button type="submit" class="btn-primary" style="width:auto;">Save Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Screen or error state overlay -->
+    <div id="toast-notify-root" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:var(--radius-md); font-size:13px; font-weight:700; z-index:200; opacity:0; pointer-events:none; transition:var(--transition-smooth);">
+        Welcome Toast
+    </div>
+
+    <!-- Scripts importing state and actions -->
+    <script src="js/store.js"></script>
+    <script src="js/sheets-sync.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

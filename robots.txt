@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://zone59501.github.io/gharkharch/sitemap.xml
