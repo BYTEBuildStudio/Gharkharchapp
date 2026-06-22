@@ -137,20 +137,23 @@ class GoogleSheetsSync {
 
             // 4. Mirror full domestic expenses list in sheet Expenses
             const expensesList = window.store.expenses;
+            
+            window.store.logTerminal("Clearing grid range 'Expenses!A:G' inside target Google Spreadsheet...", 'Syncing');
+            try {
+                await fetch(`${this.BASE_SHEETS_URL}/${spreadsheetId}/values/Expenses!A:G:clear`, {
+                    method: 'POST',
+                    headers
+                });
+            } catch(e) {
+                window.store.logTerminal(`Clear range notice: ${e.message}`, 'Warn');
+            }
+
+            const header = ["Transaction ID", "Amount (INR)", "Expense Category", "Date of Transaction", "Description Notes", "Payment Mode", "Sync Timestamp"];
+            const rows = [header];
+
             if (expensesList.length > 0) {
                 window.store.logTerminal(`Uploading ${expensesList.length} local expenses in clear-overwrite mirror...`, 'Syncing');
                 
-                // Clear the sheets first
-                try {
-                    await fetch(`${this.BASE_SHEETS_URL}/${spreadsheetId}/values/Expenses!A:G:clear`, {
-                        method: 'POST',
-                        headers
-                    });
-                } catch(e) {}
-
-                const header = ["Transaction ID", "Amount (INR)", "Expense Category", "Date of Transaction", "Description Notes", "Payment Mode", "Sync Timestamp"];
-                const rows = [header];
-
                 expensesList.forEach(exp => {
                     const dateFormatted = new Date(exp.dateMillis).toISOString().split('T')[0];
                     rows.push([
@@ -163,23 +166,24 @@ class GoogleSheetsSync {
                         new Date().toISOString()
                     ]);
                 });
+            }
 
-                const syncResp = await fetch(`${this.BASE_SHEETS_URL}/${spreadsheetId}/values/Expenses!A:G:append?valueInputOption=USER_ENTERED`, {
+            const syncResp = await fetch(`${this.BASE_SHEETS_URL}/${spreadsheetId}/values/Expenses!A1:G${rows.length}?valueInputOption=USER_ENTERED`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ values: rows })
+            });
+
+            if (!syncResp.ok) {
+                window.store.logTerminal("Specific range write failed. Handshaking append fallback...", 'Syncing');
+                await fetch(`${this.BASE_SHEETS_URL}/${spreadsheetId}/values/Expenses!A:G:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({ values: rows })
                 });
-
-                if (!syncResp.ok) {
-                    window.store.logTerminal("Grid range append mismatch. Trying fallback raw upload.", 'Syncing');
-                    await fetch(`${this.BASE_SHEETS_URL}/${spreadsheetId}/values/A:G:append?valueInputOption=USER_ENTERED`, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({ values: rows })
-                    });
-                }
-                window.store.logTerminal(`Successfully archived ${expensesList.length} expenses to cloud database.`, 'Syncing');
             }
+            
+            window.store.logTerminal(`Successfully archived ${expensesList.length} expenses to cloud database.`, 'Syncing');
 
             window.store.logTerminal("Real Google Sheets operations backup finished!", 'Success');
             if (typeof window.renderUI === 'function') window.renderUI();

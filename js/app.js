@@ -15,6 +15,7 @@ class GharKharchApp {
         this.grabDOMElements();
         this.registerEvents();
         this.populateCategorySelectElements();
+        this.initGoogleAuth();
         this.checkAuthStatus();
         this.startRealTimeClock();
     }
@@ -40,6 +41,12 @@ class GharKharchApp {
         this.authNameInput = document.getElementById('auth-name');
         this.authEmailInput = document.getElementById('auth-email');
         this.authPasswordInput = document.getElementById('auth-password');
+
+        // Google OAuth DOMElements
+        this.googleClientInput = document.getElementById('google-client-input');
+        this.toggleClientInfoBtn = document.getElementById('toggle-client-info');
+        this.clientInfoBox = document.getElementById('client-info-box');
+        this.googleSigninBtn = document.getElementById('google-signin-btn');
 
         // Navigation Footer Elements
         this.userAvatar = document.getElementById('user-avatar');
@@ -128,6 +135,18 @@ class GharKharchApp {
             this.checkAuthStatus();
         });
 
+        // Google OAuth Setup Toggle Info & Sign-In buttons
+        if (this.toggleClientInfoBtn) {
+            this.toggleClientInfoBtn.addEventListener('click', () => {
+                const isHidden = this.clientInfoBox.style.display === 'none';
+                this.clientInfoBox.style.display = isHidden ? 'block' : 'none';
+            });
+        }
+
+        if (this.googleSigninBtn) {
+            this.googleSigninBtn.addEventListener('click', () => this.triggerGoogleSignIn());
+        }
+
         // Add spend Modal open and close
         this.globalFabBtn.addEventListener('click', () => this.openSpendFormModal());
         this.onboardAddBtn.addEventListener('click', () => this.openSpendFormModal());
@@ -173,11 +192,11 @@ class GharKharchApp {
         });
 
         this.wipeDataBtn.addEventListener('click', () => {
-            if (confirm("Are you sure you want to drop all household ledger transactions?")) {
+            if (confirm("Are you sure you want to delete all spends? This will clear them locally and wipe your synced Google Sheet tab too!")) {
                 this.store.clearAllData();
                 this.sheets.sync('TRUNCATE_DB');
                 this.renderUI();
-                this.showToast('Local database tables dropped');
+                this.showToast('All spends deleted and synced');
             }
         });
     }
@@ -191,6 +210,91 @@ class GharKharchApp {
         };
         update();
         setInterval(update, 1000);
+    }
+
+    initGoogleAuth() {
+        if (this.googleClientInput) {
+            const savedClientId = this.store.googleClientId;
+            if (savedClientId) {
+                this.googleClientInput.value = savedClientId;
+            }
+
+            const originPl = document.getElementById('current-origin-placeholder');
+            if (originPl) {
+                originPl.textContent = window.location.origin;
+            }
+        }
+    }
+
+    triggerGoogleSignIn() {
+        const clientId = this.googleClientInput.value.trim();
+        if (!clientId) {
+            alert("Please enter your Google OAuth Client ID first. Follow our 'Setup Guide' to create one for your current URL!");
+            return;
+        }
+
+        this.store.setGoogleClientId(clientId);
+
+        if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+            alert("Google API client SDK is loading... Please retry in a few seconds.");
+            return;
+        }
+
+        try {
+            const tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+                callback: async (tokenResponse) => {
+                    if (tokenResponse.error) {
+                        alert(`Google Sign-In Error: ${tokenResponse.error_description || tokenResponse.error}`);
+                        return;
+                    }
+
+                    const accessToken = tokenResponse.access_token;
+                    if (accessToken) {
+                        this.showToast("Fetching Google profile credentials...");
+                        await this.fetchGoogleUserProfile(accessToken);
+                    }
+                }
+            });
+
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        } catch (err) {
+            alert(`Failed to initialize Google Auth process: ${err.message}`);
+        }
+    }
+
+    async fetchGoogleUserProfile(accessToken) {
+        try {
+            const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+
+            if (!resp.ok) {
+                throw new Error("Could not retrieve user info profile from Google.");
+            }
+
+            const data = await resp.json();
+            const email = data.email;
+            const name = data.name || data.given_name || email.split('@')[0];
+            const avatarUrl = data.picture || '';
+
+            // Perform StateStore login with Google
+            this.store.signUpWithGoogle(email, name, accessToken, avatarUrl);
+            
+            // Render transition elements
+            this.checkAuthStatus();
+            this.showToast(`Welcome, ${name}!`);
+
+            // Initialize/check google sheet immediately
+            await this.sheets.sync('INITIAL_GOOGLE_LOGIN');
+            
+            this.renderUI();
+        } catch(err) {
+            alert(`User Profile Fetching Error: ${err.message}`);
+        }
     }
 
     toggleTheme() {
@@ -211,7 +315,11 @@ class GharKharchApp {
             this.appRoot.style.display = 'flex';
             
             // Apply profile metadata layout fields
-            this.userAvatar.textContent = user.name.charAt(0).toUpperCase();
+            if (user.avatarUrl) {
+                this.userAvatar.innerHTML = `<img src="${user.avatarUrl}" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                this.userAvatar.textContent = user.name.charAt(0).toUpperCase();
+            }
             this.userDisplayName.textContent = user.name;
             this.userDisplayEmail.textContent = user.email;
             

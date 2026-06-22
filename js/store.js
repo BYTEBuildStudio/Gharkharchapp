@@ -19,6 +19,7 @@ class StateStore {
                 this.budgets = parsed.budgets || this.getDefaultBudgets();
                 this.activeUser = parsed.activeUser || null;
                 this.googleAccessToken = parsed.googleAccessToken || '';
+                this.googleClientId = parsed.googleClientId || '';
                 this.syncLogs = parsed.syncLogs || [];
                 this.syncStatus = parsed.syncStatus || 'Idle';
                 this.theme = parsed.theme || 'dark';
@@ -36,6 +37,7 @@ class StateStore {
         this.budgets = this.getDefaultBudgets();
         this.activeUser = null;
         this.googleAccessToken = '';
+        this.googleClientId = '';
         this.syncLogs = [];
         this.syncStatus = 'Idle';
         this.theme = 'dark';
@@ -49,6 +51,7 @@ class StateStore {
             budgets: this.budgets,
             activeUser: this.activeUser,
             googleAccessToken: this.googleAccessToken,
+            googleClientId: this.googleClientId,
             syncLogs: this.syncLogs,
             syncStatus: this.syncStatus,
             theme: this.theme
@@ -209,6 +212,26 @@ class StateStore {
         };
         this.save();
         this.logTerminal(`Active family session restored for member: ${this.activeUser.name}`, 'Success');
+    }
+
+    signUpWithGoogle(email, name, accessToken, avatarUrl) {
+        this.expenses = []; // Start fully empty and clean as requested by the user
+        this.activeUser = {
+            email: email.trim().toLowerCase(),
+            name: name.trim(),
+            avatarUrl: avatarUrl,
+            isGoogleUser: true,
+            spreadsheetId: '',
+            dateJoinedMillis: Date.now()
+        };
+        this.googleAccessToken = accessToken;
+        this.save();
+        this.logTerminal(`Google Sign-In: Authenticated as ${name} (${email}). Initializing personal Google Sheet...`, 'Success');
+    }
+
+    setGoogleClientId(clientId) {
+        this.googleClientId = clientId ? clientId.trim() : '';
+        this.save();
     }
 
     logOut() {
